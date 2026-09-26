@@ -19,6 +19,25 @@ Hover a ring for its limit windows and when they reset. Claude's ring shows the
 same **current session** window Claude Code's own `/usage` leads with, so the
 two never disagree.
 
+## This fork
+
+`rioyokotalab/codenotch`, forked from [`vinzdg/codenotch`](https://github.com/vinzdg/codenotch) (MIT).
+
+- **`main` is a clean mirror of `upstream/main`.** Nothing is committed to it, so
+  each upstream advance is a rebase of one branch rather than a merge into a
+  diverged trunk. Upstream ships roughly every one to two days.
+- **`local-pane-activity` carries the changes** and is what the Macs build and
+  run. It adds `LocalPaneMonitor`: the Codex1, Codex2 and Claude panes on the
+  Linux host reached by the `local` SSH alias appear as sessions on the ring of
+  the account each one is a login of. Only one of four words per pane crosses —
+  no pane text, prompt, task name or transcript.
+- **Sparkle is pointed at this fork with automatic updates off.** Upstream's
+  signing key matches this bundle, so its feed would otherwise replace a locally
+  built fork without asking.
+- Build and install with `make install` (needs `brew install xcodegen`). On a Mac
+  with no Developer ID that target now deep re-signs ad-hoc, without which the
+  embedded Sparkle keeps its vendor Team ID and dyld refuses to launch the app.
+
 ## Download
 
 [![Download for macOS](docs/design/download-macos.svg)](../../releases/latest/download/Codenotch.dmg)
