@@ -85,6 +85,9 @@ final class LocalPaneMonitor {
     /// When each pane entered the state it is in. Kept so a row's age is the age
     /// of the *state*, not the age of the last poll.
     private var entered: [LocalPaneRole: (state: AgentSession.State, since: Date)] = [:]
+    /// Last summary written to the log, so a steady state is not repeated at
+    /// `notice` level every five seconds.
+    private var lastSummary = ""
 
     init(interval: TimeInterval = 5,
          query: @escaping () -> LocalPaneReading? = LocalPaneMonitor.queryLocal,
@@ -95,12 +98,16 @@ final class LocalPaneMonitor {
     }
 
     func start() {
-        guard Self.isEnabled, timer == nil else { return }
+        guard Self.isEnabled, timer == nil else {
+            Log.sessions.notice("local panes: not started (enabled=\(Self.isEnabled, privacy: .public))")
+            return
+        }
+        Log.sessions.notice("local panes: watching Local every \(Int(self.interval), privacy: .public)s")
         // Built rather than scheduled, then added in `.common`: a scheduled
         // timer lands in `.default` only, and this has to keep firing while the
         // tooltip that shows these very rows is holding a tracking run loop.
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.refresh() }
+            MainActor.assumeIsolated { self?.refresh() }
         }
         timer.tolerance = interval / 2
         RunLoop.main.add(timer, forMode: .common)
@@ -119,9 +126,13 @@ final class LocalPaneMonitor {
         guard !fetching else { return }
         fetching = true
         let query = self.query
-        Task.detached(priority: .utility) {
+        // A real thread, not the cooperative pool: `queryLocal` blocks on a
+        // semaphore waiting for `ssh`, and blocking a pool thread is how you
+        // starve every other task in the process. This is also exactly how the
+        // indicator this replaces ran the same call.
+        DispatchQueue.global(qos: .utility).async {
             let reading = query()
-            await MainActor.run { [weak self] in
+            DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.fetching = false
                 self.apply(reading)
@@ -131,7 +142,13 @@ final class LocalPaneMonitor {
 
     private func apply(_ reading: LocalPaneReading?) {
         let resolved = Self.states(from: reading)
-        Log.sessions.debug("local panes: \(Self.summary(resolved), privacy: .public)")
+        let summary = Self.summary(resolved)
+        if summary != lastSummary {
+            lastSummary = summary
+            Log.sessions.notice("local panes: \(summary, privacy: .public)")
+        } else {
+            Log.sessions.debug("local panes: \(summary, privacy: .public)")
+        }
         let now = Date()
         for role in LocalPaneRole.allCases {
             guard let outcome = resolved[role] else { continue }
