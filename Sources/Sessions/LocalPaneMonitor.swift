@@ -96,8 +96,10 @@ final class LocalPaneMonitor {
 
     func start() {
         guard Self.isEnabled, timer == nil else { return }
-        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) {
-            [weak self] _ in
+        // Built rather than scheduled, then added in `.common`: a scheduled
+        // timer lands in `.default` only, and this has to keep firing while the
+        // tooltip that shows these very rows is holding a tracking run loop.
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.refresh() }
         }
         timer.tolerance = interval / 2
@@ -154,6 +156,9 @@ final class LocalPaneMonitor {
 
     // MARK: - Mapping
 
+    /// Isolation note: the mapping below is `nonisolated` on purpose. It reads
+    /// no instance state, and forcing a caller onto the main actor to check a
+    /// lookup table would only make the tests test the hop.
     struct Outcome: Equatable {
         let state: AgentSession.State
         let detail: String
@@ -166,7 +171,7 @@ final class LocalPaneMonitor {
     /// indicator also reported as `disconnected` for every pane. A reading whose
     /// schema, host or role set is not the one expected is an `error`: answering
     /// from a payload that is not the contract would be worse than saying so.
-    static func states(from reading: LocalPaneReading?)
+    nonisolated static func states(from reading: LocalPaneReading?)
         -> [LocalPaneRole: Outcome] {
         guard let reading else {
             return outcomes(word: "disconnected", reason: "local unreachable")
@@ -186,13 +191,13 @@ final class LocalPaneMonitor {
         return resolved
     }
 
-    private static func outcomes(word: String, reason: String)
+    nonisolated private static func outcomes(word: String, reason: String)
         -> [LocalPaneRole: Outcome] {
         let shared = outcome(word: word, reason: reason)
         return Dictionary(uniqueKeysWithValues: LocalPaneRole.allCases.map { ($0, shared) })
     }
 
-    private static func outcome(word: String, reason: String) -> Outcome {
+    nonisolated private static func outcome(word: String, reason: String) -> Outcome {
         switch word {
         case "active":
             return Outcome(state: .busy, detail: "Local", waitingFor: nil)
@@ -210,7 +215,7 @@ final class LocalPaneMonitor {
         }
     }
 
-    private static func summary(_ resolved: [LocalPaneRole: Outcome]) -> String {
+    nonisolated private static func summary(_ resolved: [LocalPaneRole: Outcome]) -> String {
         LocalPaneRole.allCases.compactMap { role in
             resolved[role].map { "\(role.rawValue)=\($0.state)" }
         }.joined(separator: " ")
