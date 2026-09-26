@@ -31,6 +31,28 @@ struct ReleaseNote: Equatable {
 enum ReleaseNotes {
     static var all: [ReleaseNote] {
         [
+            // The rioyokotalab fork's own entry. Deliberately plain strings
+            // rather than `L10n.t`: a fork's note has no catalog entries in the
+            // thirteen shipped languages, and inventing keys for them would put
+            // the key itself on screen in every language but English.
+            ReleaseNote(
+                version: "1.18.0-rioyokotalab.1",
+                headline: "Local's three agent panes now show on the rings of the accounts they belong to.",
+                changes: [
+                    ReleaseNote.Change(
+                        title: "Codex1, Codex2 and Claude on Local",
+                        detail: "Those panes run on the Linux host reached by the `local` SSH alias, so nothing that watches files on this Mac could see them. Each pane now arrives as a session on the ring of the account it is a login of, so the Codex1 ring shows account 1's limits and, among its sessions, account 1's pane on Local. Only one of four words per pane ever crosses: no pane text, prompt, task name or transcript."
+                    ),
+                    ReleaseNote.Change(
+                        title: "A pane that is disconnected or in error says so",
+                        detail: "Both are reported as waiting, carrying the reader's own reason, because both mean the one thing worth interrupting you for. An unreachable Local says so on all three rather than falling quiet."
+                    ),
+                    ReleaseNote.Change(
+                        title: "Automatic updates are off in this build",
+                        detail: "Upstream's signing key matches this bundle, so its feed would replace a locally built fork without asking. The feed points at this fork instead."
+                    ),
+                ]
+            ),
             ReleaseNote(
                 version: "1.18.0",
                 headline: L10n.t("On a MacBook the notch is now your Mac's own — the readings sit either side of the camera housing rather than under it."),
