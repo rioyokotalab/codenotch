@@ -14,7 +14,7 @@ settings:
     # Sources/Info.plist reads both from here — hardcoding them there instead
     # silently pins every build to one version, so no customer ever sees an
     # update. Bump CURRENT_PROJECT_VERSION on every release.
-    MARKETING_VERSION: "1.18.0"
+    MARKETING_VERSION: "1.18.0-rioyokotalab.1"
     CURRENT_PROJECT_VERSION: "20"
     # Signed with a stable identity on purpose. The app reads Claude Code's
     # OAuth token out of the login keychain, and the keychain's ACL remembers
@@ -100,7 +100,14 @@ targets:
         #
         # Must stay reachable for as long as any copy is installed: the feed is
         # the only route by which a shipped build can ever be replaced.
-        SUFeedURL: https://hivinz.com/appcast.xml
+        # rioyokotalab fork: deliberately NOT upstream's feed. Upstream ships
+        # every one to two days and its EdDSA key matches this bundle, so the
+        # original feed would silently replace a locally built fork with the
+        # upstream build — the comment below says as much: the feed is the only
+        # route by which a shipped build can ever be replaced. Pointed at a path
+        # in this fork that does not exist yet, so a manual check fails closed
+        # and the URL is already right if we ever publish our own appcast.
+        SUFeedURL: https://raw.githubusercontent.com/rioyokotalab/codenotch/main/appcast.xml
         # The public half of the EdDSA key in the login keychain. Sparkle
         # refuses any update not signed by its private half, so a hijacked feed
         # or a swapped download cannot install code. Losing the private key
@@ -109,8 +116,8 @@ targets:
         # Set explicitly so Sparkle never asks on first launch. Left unset, it
         # shows a "check for updates automatically?" prompt, which is exactly
         # the permission this is meant to avoid.
-        SUEnableAutomaticChecks: true
-        SUAutomaticallyUpdate: true
+        SUEnableAutomaticChecks: false
+        SUAutomaticallyUpdate: false
         SUScheduledCheckInterval: 86400
     settings:
       base:

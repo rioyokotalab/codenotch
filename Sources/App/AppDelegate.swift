@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var phoneLinkRegistry: PhoneLinkRegistry?
     private var activityCoordinator: ActivityCoordinator?
     private var piResponseMonitor: PiResponseMonitor?
+    private var localPaneMonitor: LocalPaneMonitor?
     private var ollamaRelay: OllamaActivityRelay?
     private var lmstudioMetrics: LMStudioMetrics?
     private var preferences: Preferences?
@@ -909,6 +910,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         piResponseMonitor.start()
         self.piResponseMonitor = piResponseMonitor
 
+        // Local's three agent panes, each on the ring of the account it belongs
+        // to. Supplemental rather than a monitor of its own because one monitor
+        // serves one provider and these rows serve three. See LocalPaneMonitor.
+        let localPaneMonitor = LocalPaneMonitor { [weak activity] providerID, sessions in
+            activity?.setSupplementalSessions(
+                providerID: providerID,
+                source: "local-panes",
+                sessions: sessions
+            )
+        }
+        localPaneMonitor.start()
+        self.localPaneMonitor = localPaneMonitor
+
         store?.isBusy = { [weak self, weak activity] in
             (activity?.isBusy ?? false) || (self?.lmstudioMetrics?.isBusy ?? false)
         }
@@ -1185,6 +1199,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lmstudioMetrics?.stop()
         tokenRefresher?.stop()
         piResponseMonitor?.stop()
+        localPaneMonitor?.stop()
         store?.stop()
         activityCoordinator?.stop()
         notchFleet?.stop()
