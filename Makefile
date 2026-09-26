@@ -101,6 +101,19 @@ run: build
 # signed. The app embeds Sparkle, and macOS rejects a bundle whose framework
 # and binary carry different Team IDs, so the whole bundle is signed with one
 # identity rather than left unsigned.
+#
+# On a Mac with no Developer ID and no DEVELOPMENT_TEAM, `DEV_SIGN` is
+# ad-hoc, and xcodebuild ad-hoc signs the app while leaving the embedded
+# Sparkle.framework on its vendor's Team ID — the very mismatch the
+# paragraph above describes. dyld then refuses to map it and the app
+# aborts at launch with "Library not loaded: @rpath/Sparkle.framework".
+# So when the installed bundle has no Team ID, re-sign it deeply ad-hoc,
+# which is the one identity everything inside it can agree on.
+#
+# Installed with `rm -rf` then `ditto` rather than `cp -R`: copying onto
+# an existing bundle merges into it, leaving the previous build's
+# frameworks beside the new binary — which produces exactly the same
+# Team ID mismatch even when the fresh build was signed correctly.
 install: gen
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DEST)' \
 		-configuration Release $(DEV_SIGN) build
@@ -108,7 +121,12 @@ install: gen
 		-configuration Release -showBuildSettings 2>/dev/null \
 		| awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {print $$2; exit}')/Codenotch.app; \
 	pkill -x Codenotch || true; \
-	cp -R "$$APP" /Applications/; \
+	for i in 1 2 3 4 5 6 7 8 9 10; do pgrep -x Codenotch >/dev/null || break; sleep 0.3; done; \
+	rm -rf /Applications/Codenotch.app; \
+	ditto "$$APP" /Applications/Codenotch.app; \
+	if ! codesign -dv /Applications/Codenotch.app 2>&1 | grep -q '^TeamIdentifier=[A-Z0-9]'; then \
+		codesign --force --deep --sign - /Applications/Codenotch.app; \
+	fi; \
 	open /Applications/Codenotch.app
 
 clean:
