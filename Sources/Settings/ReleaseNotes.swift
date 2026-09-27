@@ -36,6 +36,20 @@ enum ReleaseNotes {
             // thirteen shipped languages, and inventing keys for them would put
             // the key itself on screen in every language but English.
             ReleaseNote(
+                version: "1.18.0-rioyokotalab.2",
+                headline: "The activity indicator is a traffic light, and the rings are in pane order.",
+                changes: [
+                    ReleaseNote.Change(
+                        title: "Green working, yellow idle, red blocked",
+                        detail: "The indicator inside each ring is coloured by what the session is doing, so the state of the Local panes reads at a glance. Upstream kept it neutral white on purpose — the ring around it is a usage scale built from these same three colours — which is a real cost, accepted here for the reading it buys."
+                    ),
+                    ReleaseNote.Change(
+                        title: "An idle session is shown rather than left blank",
+                        detail: "A still ring, neither turning nor pulsing. A ring carrying a Local pane always has a state worth showing, and blank could not be told from having no pane at all."
+                    ),
+                ]
+            ),
+            ReleaseNote(
                 version: "1.18.0-rioyokotalab.1",
                 headline: "Local's three agent panes now show on the rings of the accounts they belong to.",
                 changes: [

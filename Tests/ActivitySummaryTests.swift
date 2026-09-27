@@ -28,11 +28,14 @@ final class ActivitySummaryTests: XCTestCase {
         XCTAssertEqual(ActivitySummary(sessions: [session(.idle), session(.idle)])?.state, .idle)
     }
 
-    /// Working must not borrow a colour from the usage scale — the indicator
-    /// sits inside a ring whose colour already means something else.
-    func testWorkingIsNeutralAndWaitingIsNot() {
-        XCTAssertEqual(ActivitySummary(sessions: [session(.busy)])?.color, Palette.textPrimary)
-        XCTAssertEqual(ActivitySummary(sessions: [session(.waiting)])?.color, Palette.watch)
+    /// The traffic light this fork asks for: green working, yellow idle, red
+    /// blocked. Upstream's rule was the opposite — working had to stay neutral
+    /// so it could not be read as part of the usage scale — so this test is the
+    /// record of a deliberate reversal rather than a tightening.
+    func testTheIndicatorIsATrafficLight() {
+        XCTAssertEqual(ActivitySummary(sessions: [session(.busy)])?.color, Palette.ample)
+        XCTAssertEqual(ActivitySummary(sessions: [session(.idle)])?.color, Palette.watch)
+        XCTAssertEqual(ActivitySummary(sessions: [session(.waiting)])?.color, Palette.critical)
     }
 }
 

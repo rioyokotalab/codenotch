@@ -183,7 +183,11 @@ struct ProviderRing: View {
             }
             .opacity(isStale ? (reduceTransparency ? 0.75 : 0.45) : 1)
 
-            if let activity, activity.state != .idle {
+            // Idle is drawn too, which upstream did not do. A ring carrying a
+            // Local agent pane always has a state worth showing, and a pane that
+            // is merely idle is the commonest of them: leaving it blank is the
+            // one reading that cannot be told from "no pane at all".
+            if let activity {
                 ActivityArc(summary: activity)
             }
         }
@@ -213,8 +217,9 @@ struct ProviderRing: View {
     }
 }
 
-/// The inner indicator: a short arc that spins while work is happening, and a
-/// full pulsing ring when something is blocked waiting on you.
+/// The inner indicator: a short arc that spins while work is happening, a full
+/// pulsing ring when something is blocked waiting on you, and a still ring when
+/// there is a session that is simply idle.
 private struct ActivityArc: View {
     let summary: ActivitySummary
 
@@ -234,7 +239,7 @@ private struct ActivityArc: View {
             switch summary.state {
             case .working: spinner
             case .waiting, .success: pulse
-            case .idle:    EmptyView()
+            case .idle:    steady
             }
         }
         .frame(width: NotchLayout.ringDiameter, height: NotchLayout.ringDiameter)
@@ -260,6 +265,15 @@ private struct ActivityArc: View {
             inset: inset,
             turns: !reduceMotion
         )
+    }
+
+    /// Idle: the same circle the other states use, holding still. Neither
+    /// turning nor pulsing, because nothing is happening — motion here would
+    /// claim otherwise, and this is the state a ring sits in for hours.
+    private var steady: some View {
+        Circle()
+            .inset(by: inset)
+            .stroke(summary.color, lineWidth: NotchLayout.activityStroke)
     }
 
     private var pulse: some View {

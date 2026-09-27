@@ -49,16 +49,21 @@ struct ActivitySummary: Equatable {
         }
     }
 
-    /// White for working, deliberately: the indicator sits inside a ring whose
-    /// colour already means "how much of your limit is gone", and a neutral
-    /// tone cannot be misread as part of that scale. Waiting gets amber because
-    /// it is the one state that wants something from you.
+    /// Green working, yellow idle, red blocked — a traffic light, by owner
+    /// request (2026-09-27), because these rings carry the Local agent panes and
+    /// the state of those panes is read at a glance from across the room.
+    ///
+    /// Upstream drew working in neutral white on purpose: the indicator sits
+    /// inside a ring whose own colour is the usage scale, built from these very
+    /// three, so a coloured indicator can be misread as part of that scale. That
+    /// is a real cost and it is accepted here rather than denied — the reading it
+    /// buys is the one this fork exists for. Reverting is this function alone.
     var color: Color {
         switch state {
-        case .working: return Palette.textPrimary
-        case .waiting: return Palette.watch
+        case .working: return Palette.ample
+        case .waiting: return Palette.critical
         case .success: return Palette.ample
-        case .idle:    return Palette.ringTrack
+        case .idle:    return Palette.watch
         }
     }
 
