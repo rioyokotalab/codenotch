@@ -55,7 +55,7 @@ enum LocalPaneRole: String, CaseIterable {
 ///
 /// Those panes run on the Linux host behind the `local` SSH alias, not on this
 /// Mac, so none of the file-watching monitors can see them. The reader on that
-/// host answers with one of four words per pane — `active`, `idle`,
+/// host answers with one of four words per pane — `active`, `waiting`, `idle`,
 /// `disconnected`, `error` — and a `reason`. Pane text, prompts, task names and
 /// transcripts never cross, and this adds no traffic beyond that one call.
 ///
@@ -223,6 +223,11 @@ final class LocalPaneMonitor {
         case "disconnected":
             return Outcome(state: .waiting, detail: "Local",
                            waitingFor: "Pane missing — \(reason)")
+        case "waiting":
+            // The Codex client is paused at its own `Action Required` gate. That
+            // is the pane's real state, not a fault in reading it.
+            return Outcome(state: .waiting, detail: "Local",
+                           waitingFor: "Action required")
         default:
             // Every other word, the reader's `error` included: an unknown state
             // is not an idle one, and saying "idle" about a pane nobody has

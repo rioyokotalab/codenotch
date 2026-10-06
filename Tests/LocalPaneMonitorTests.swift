@@ -49,6 +49,15 @@ final class LocalPaneMonitorTests: XCTestCase {
         XCTAssertNil(resolved[.codex2]?.waitingFor)
     }
 
+    func testAnActionRequiredGateIsWaitingNotAnError() {
+        let resolved = LocalPaneMonitor.states(from: full([
+            "codex1": "active", "codex2": "waiting", "claude": "idle",
+        ]))
+        XCTAssertEqual(resolved[.codex2]?.state, .waiting)
+        XCTAssertEqual(resolved[.codex2]?.waitingFor, "Action required")
+        XCTAssertEqual(resolved[.codex1]?.state, .busy)
+    }
+
     func testDisconnectedAndErrorBecomeWaitingCarryingTheReason() {
         let resolved = LocalPaneMonitor.states(from: full([
             "codex1": "disconnected", "codex2": "error", "claude": "idle",
