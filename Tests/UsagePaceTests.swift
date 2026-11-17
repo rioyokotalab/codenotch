@@ -51,6 +51,27 @@ final class UsagePaceTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(pace()).summary, "0% reserved")
     }
 
+    func testColorFollowsExcessBudgetInsteadOfTheRawReading() throws {
+        // 50% used with 75% of the cycle elapsed holds 25 points in excess.
+        // Its raw usage would be yellow; the time-adjusted colour is greenward.
+        let reserved = try XCTUnwrap(pace(used: 0.50, remaining: 151200))
+        XCTAssertEqual(reserved.colorFraction(watchLimit: 0.50), 0.25, accuracy: 0.00001)
+
+        // 60% used with only 25% elapsed is 35 points beyond budget. Its raw
+        // reading is merely yellow; the time-adjusted colour is critical.
+        let deficit = try XCTUnwrap(pace(used: 0.60, remaining: 453600))
+        XCTAssertEqual(deficit.colorFraction(watchLimit: 0.50), 0.85, accuracy: 0.00001)
+
+        XCTAssertEqual(try XCTUnwrap(pace()).colorFraction(watchLimit: 0.50), 0.50,
+                       "exactly on budget must land on the watch anchor")
+    }
+
+    func testColorFractionUsesTheConfiguredAnchorAndClamps() {
+        XCTAssertEqual(UsagePace(percentagePoints: 0).colorFraction(watchLimit: 0.30), 0.30)
+        XCTAssertEqual(UsagePace(percentagePoints: -80).colorFraction(watchLimit: 0.50), 0)
+        XCTAssertEqual(UsagePace(percentagePoints: 80).colorFraction(watchLimit: 0.50), 1)
+    }
+
     func testDurationCodingRemainsBackwardCompatible() throws {
         let original = LimitWindow(id: "w", label: "Weekly", usedFraction: 0.98,
                                    resetsAt: now.addingTimeInterval(86400), duration: 604800)

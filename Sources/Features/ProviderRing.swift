@@ -12,6 +12,9 @@ struct ProviderRing: View {
     /// Nil when the provider reports what is left but never says out of what —
     /// there is no arc to draw, and inventing one would be a lie in a shape.
     let usedFraction: Double?
+    /// Budget relative to elapsed time. Nil keeps the legacy usage-based
+    /// colour for windows without a valid cycle.
+    var usagePace: UsagePace? = nil
     let glyph: ProviderGlyph
     var customIconFilename: String? = nil
     var isStale: Bool = false
@@ -29,6 +32,7 @@ struct ProviderRing: View {
     /// The weekly limit, when the provider has one. Nil is the ordinary case
     /// for a provider with a single window, and draws nothing.
     var weeklyFraction: Double?
+    var weeklyUsagePace: UsagePace? = nil
     /// Where the user asked for it, if at all.
     var weeklyRing: WeeklyRing = .off
     var bandOverride: UsageBand? = nil
@@ -45,7 +49,10 @@ struct ProviderRing: View {
     private var band: UsageBand {
         guard !isBlocked else { return .exhausted }
         if let bandOverride { return bandOverride }
-        return UsageBand.band(for: usedFraction ?? 0, watchLimit: watchLimit, criticalLimit: criticalLimit)
+        return UsageBand.band(for: primaryColorFraction, watchLimit: watchLimit, criticalLimit: criticalLimit)
+    }
+    private var primaryColorFraction: Double {
+        usagePace?.colorFraction(watchLimit: watchLimit) ?? usedFraction ?? 0
     }
     private var sweep: CGFloat { CGFloat(min(max(usedFraction ?? 0, 0), 1)) }
     private var localSweep: CGFloat { Self.localSweep(for: localContextFraction) }
@@ -67,17 +74,20 @@ struct ProviderRing: View {
         guard !isBlocked, bandOverride == nil, colorTransitionStyle == .ramp else {
             return band.color(accent: accentColor)
         }
-        return UsageBand.rampColor(for: usedFraction ?? 0, watchLimit: watchLimit, accent: accentColor)
+        return UsageBand.rampColor(for: primaryColorFraction, watchLimit: watchLimit, accent: accentColor)
     }
 
     private var weeklyBand: UsageBand {
-        isBlocked ? .exhausted : UsageBand.band(for: weeklyFraction ?? 0, watchLimit: watchLimit, criticalLimit: criticalLimit)
+        isBlocked ? .exhausted : UsageBand.band(for: weeklyColorFraction, watchLimit: watchLimit, criticalLimit: criticalLimit)
+    }
+    private var weeklyColorFraction: Double {
+        weeklyUsagePace?.colorFraction(watchLimit: watchLimit) ?? weeklyFraction ?? 0
     }
     private var weeklySweep: CGFloat { CGFloat(min(max(weeklyFraction ?? 0, 0), 1)) }
     /// Same fallback rule as `primaryRingColor`, minus `bandOverride` — the weekly ring has none.
     private var weeklyRingColor: Color {
         guard !isBlocked, colorTransitionStyle == .ramp else { return weeklyBand.color(accent: accentColor) }
-        return UsageBand.rampColor(for: weeklyFraction ?? 0, watchLimit: watchLimit, accent: accentColor)
+        return UsageBand.rampColor(for: weeklyColorFraction, watchLimit: watchLimit, accent: accentColor)
     }
 
     /// Inside, the weekly ring and the working indicator want the same band —
@@ -330,6 +340,7 @@ struct ProviderCell: View {
         VStack(spacing: NotchLayout.ringLabelGap) {
             ProviderRing(
                 usedFraction: snapshot.localModel == nil && snapshot.hasReading ? snapshot.ringFraction : nil,
+                usagePace: snapshot.headline?.usagePace(now: Date()),
                 glyph: snapshot.glyph,
                 customIconFilename: snapshot.customIconFilename,
                 isStale: snapshot.status.isStale || !snapshot.hasReading,
@@ -339,6 +350,7 @@ struct ProviderCell: View {
                 localPerformance: snapshot.localPerformance,
                 localContextFraction: snapshot.localContextFraction,
                 weeklyFraction: snapshot.hasReading ? snapshot.weeklyFraction : nil,
+                weeklyUsagePace: snapshot.weeklyWindow?.usagePace(now: Date()),
                 weeklyRing: weeklyRing,
                 bandOverride: snapshot.bandOverride
             )

@@ -432,9 +432,14 @@ private struct LimitWindowRow: View {
     @Environment(\.colorTransitionStyle) private var colorTransitionStyle
     @Environment(\.tooltipSecondaryInk) private var secondaryInk
 
+    private var colorFraction: Double {
+        window.usagePace(now: now)?.colorFraction(watchLimit: watchLimit)
+            ?? window.usedFraction ?? 0
+    }
+
     private var band: UsageBand {
         if let override = window.bandOverride { return override }
-        return UsageBand.band(for: window.usedFraction ?? 0, watchLimit: watchLimit, criticalLimit: criticalLimit)
+        return UsageBand.band(for: colorFraction, watchLimit: watchLimit, criticalLimit: criticalLimit)
     }
     /// Continuous when that style is chosen; a `bandOverride` is a deliberate discrete choice
     /// from the caller regardless of style, so it stays exactly as `band.color(accent:)` renders it.
@@ -442,7 +447,7 @@ private struct LimitWindowRow: View {
         guard window.bandOverride == nil, colorTransitionStyle == .ramp else {
             return band.color(accent: accentColor)
         }
-        return UsageBand.rampColor(for: window.usedFraction ?? 0, watchLimit: watchLimit, accent: accentColor)
+        return UsageBand.rampColor(for: colorFraction, watchLimit: watchLimit, accent: accentColor)
     }
     private var trackWidth: CGFloat { NotchLayout.cardWidth - 2 * NotchLayout.cardPadding - inset }
     private var fillWidth: CGFloat {
