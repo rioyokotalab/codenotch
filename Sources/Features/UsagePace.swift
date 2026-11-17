@@ -6,6 +6,16 @@ struct UsagePace {
 
     var isDeficit: Bool { percentagePoints > 0 }
 
+    /// The colour scale's input when colour describes budget relative to time.
+    ///
+    /// Exactly on pace sits at the watch colour. Quota held in excess moves
+    /// toward ample; usage beyond the elapsed budget moves toward critical.
+    /// The ring/bar fill remains the provider's raw fraction — this value is
+    /// only for colour.
+    func colorFraction(watchLimit: Double) -> Double {
+        min(max(min(max(watchLimit, 0), 1) + percentagePoints / 100, 0), 1)
+    }
+
     var summary: String {
         let magnitude = abs(percentagePoints)
         let rounded = (magnitude * 10).rounded() / 10
